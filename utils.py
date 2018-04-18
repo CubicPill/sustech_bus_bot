@@ -6,9 +6,8 @@ def parse_overrides(f):
 
 
 class BusSchedule:
-    def __init__(self,folder):
-        pass
+    def __init__(self, folder, override=None):
+        self.override_file = override
 
     def get_next(self, t=time.time()):
         pass
-
