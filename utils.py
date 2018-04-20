@@ -9,6 +9,9 @@ class BusSchedule:
     def __init__(self, folder, override=None):
         self.override_file = override
 
+    def _read_line_info(self):
+        pass
+
     def get_next(self, t=time.time()):
         pass
 
