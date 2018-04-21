@@ -42,14 +42,13 @@ class BusSchedule:
     def __init__(self, folder, override=None):
         self.folder = folder
         self.override_file = override
-        self.line_details = list()
+        self.lines = list()
         self.override_detail = list()
 
     def _read_line_info(self):
         for filename in os.listdir(self.folder):
-            print(filename)
             with open(os.path.join(self.folder, filename)) as f:
-                self.line_details.append(self.parse_line(f.readlines()))
+                self.lines.append(self.parse_line(f.readlines()))
 
     @staticmethod
     def parse_overrides(lines: list):
@@ -81,8 +80,31 @@ class BusSchedule:
         return BusLine(**result)
 
     def get_all_lines_next(self, t=time.time()):
-        for line in self.line_details:
-            line.get_next(t)
+        """
+        get next bus on all groups of lines
+        in-group priority: latest > miss_last > not_today
+
+        :param t: timestamp
+        :return: dict
+        """
+        results = dict()
+        for line in self.lines:
+            r = line.get_next(t)
+            if results.get(line.group) is not None:
+                if results[line.group] == QueryStatus.NOT_TODAY:
+                    # every result can override NOT_TODAY
+                    results[line.group] = r
+                elif results[line.group] == QueryStatus.MISS_LAST:
+                    # if result is not NOT_TODAY, every result can override MISS_LAST
+                    if r != QueryStatus.NOT_TODAY:
+                        results[line.group] = r
+                else:
+                    # if is a time result, take the latest
+                    if r < results[line.group]:
+                        results[line.group] = r
+            else:
+                results[line.group] = r
+        return results
 
     def get_line_detail(self, line_id):
         pass
