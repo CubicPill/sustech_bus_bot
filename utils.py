@@ -1,12 +1,12 @@
 import time
 import datetime
 import os
-from enum import Enum
+from enum import IntEnum
 
 
-class DayType(Enum):
-    WEEKEND = 'WEEKEND'
-    WEEKDAY = 'WEEKDAY'
+class QueryStatus(IntEnum):
+    MISS_LAST = -1
+    NOT_TODAY = -2
 
 
 class BusLine:
@@ -28,9 +28,13 @@ class BusLine:
                 i = mid + 1
         return time_list[i]
 
-    def get_next(self, t_int: int) -> int:
-        if t_int > self.time_list[-1]:  # if is after the last bus of the day, return the first bus tomorrow
-            return self.time_list[0]
+    def get_next(self, ts: float) -> int:
+        dt = datetime.datetime.utcfromtimestamp(ts)
+        if dt.weekday() + 1 not in self.day:  # today this line is not running
+            return QueryStatus.NOT_TODAY
+        t_int = int(time.strftime('%H%M', time.localtime(ts)))
+        if t_int > self.time_list[-1]:  # if is after the last bus of the day
+            return QueryStatus.MISS_LAST
         return self.bin_search(self.time_list, t_int)
 
 
@@ -57,27 +61,28 @@ class BusSchedule:
         lines = [l for l in lines if l and '\n' != l]
         try:
             assert lines[0].startswith('id:')
-            assert lines[1].startswith('name:')
-            assert lines[2].startswith('day:')
-            assert lines[3].startswith('route:')
+            assert lines[1].startswith('group:')
+            assert lines[2].startswith('name:')
+            assert lines[3].startswith('day:')
+            assert lines[4].startswith('route:')
         except AssertionError:
             raise ValueError('Invalid line configuration data')
         result = {
             'id': lines[0].split(':', 1)[-1],
-            'name': lines[1].split(':', 1)[-1],
-            'day': DayType.WEEKDAY if lines[2].split(':', 1)[-1] == 'weekday' else DayType.WEEKEND,
-            'route': lines[3].split(':', 1)[-1],
+            'group': lines[1].split(':', 1)[-1],
+            'name': lines[2].split(':', 1)[-1],
+            'day': map(int, lines[3].split(':', 1)[-1].split(',')),
+            'route': lines[4].split(':', 1)[-1],
             'time_list': list()
         }
-        for l in lines[4:]:
+        for l in lines[5:]:
             result['time_list'].append(int(''.join(l.split(':'))))
         result['time_list'].sort()
         return BusLine(**result)
 
     def get_all_lines_next(self, t=time.time()):
-        t_int = int(time.strftime('%H%M', time.localtime(t)))
         for line in self.line_details:
-            line.get_next(t_int)
+            line.get_next(t)
 
     def get_line_detail(self, line_id):
         pass
