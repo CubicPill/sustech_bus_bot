@@ -1,5 +1,7 @@
 from unittest import TestCase
 from utils import BusLine, QueryStatus
+import time
+import datetime
 
 
 class TestBusLine(TestCase):
@@ -21,8 +23,10 @@ class TestBusLine(TestCase):
                           1500, 1520, 1540, 1620, 1640, 1700, 1720, 1740, 1800, 1820, 1840, 1900, 2000, 2100]
         }
         bl = BusLine(**r)
-        self.assertEqual(bl.get_next(1524213679), 1700)
-        self.assertEqual(bl.get_next(1524213600), 1700)
 
-        self.assertEqual(bl.get_next(1524300079), QueryStatus.NOT_TODAY)
-        self.assertEqual(bl.get_next(1524235200), QueryStatus.MISS_LAST)
+        self.assertEqual(bl.get_next(datetime.datetime(2018, 4, 20, 16, 46, 44, 139715).timestamp()), 1700)
+        self.assertEqual(bl.get_next(datetime.datetime(2018, 4, 20, 16, 40, 0, 0).timestamp()), 1700)
+        self.assertEqual(bl.get_next(datetime.datetime(2018, 4, 21, 16, 46, 44, 139715).timestamp()),
+                         QueryStatus.NOT_TODAY)
+        self.assertEqual(bl.get_next(datetime.datetime(2018, 4, 20, 21, 46, 44, 139715).timestamp()),
+                         QueryStatus.MISS_LAST)

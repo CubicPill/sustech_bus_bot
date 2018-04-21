@@ -58,7 +58,7 @@ class BusSchedule:
     @staticmethod
     def parse_line(lines: list) -> BusLine:
         # the line configuration files' line breaking should be UNIX-Style
-        lines = [l for l in lines if l and '\n' != l]
+        lines = [l for l in lines if l and '\n' != l and not l.startswith('#')]
         try:
             assert lines[0].startswith('id:')
             assert lines[1].startswith('group:')
