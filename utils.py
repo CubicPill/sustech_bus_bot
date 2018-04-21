@@ -37,6 +37,9 @@ class BusLine:
             return QueryStatus.MISS_LAST
         return self.bin_search(self.time_list, t_int)
 
+    def add_override(self):
+        pass
+
 
 class BusSchedule:
     def __init__(self, folder, override=None):
@@ -49,10 +52,14 @@ class BusSchedule:
         for filename in os.listdir(self.folder):
             with open(os.path.join(self.folder, filename)) as f:
                 self.lines.append(self.parse_line(f.readlines()))
+        if self.override_file:
+            with open(os.path.join(os.path.join(self.override_file))) as f:
+                self.parse_overrides(f.readlines())
 
     @staticmethod
     def parse_overrides(lines: list):
-        pass
+        lines = [l for l in lines if l and '\n' != l and not l.startswith('#')]
+        return [l.split(' ', 1) for l in lines]
 
     @staticmethod
     def parse_line(lines: list) -> BusLine:
@@ -66,6 +73,8 @@ class BusSchedule:
             assert lines[4].startswith('route:')
         except AssertionError:
             raise ValueError('Invalid line configuration data')
+        if '\n' in lines[0]:
+            print('\\n seen')
         result = {
             'id': lines[0].split(':', 1)[-1],
             'group': lines[1].split(':', 1)[-1],
