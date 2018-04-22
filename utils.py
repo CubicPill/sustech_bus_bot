@@ -31,7 +31,6 @@ class BusLine:
 
     def get_next(self, ts: float) -> int:
         dt = datetime.datetime.fromtimestamp(ts)
-        print('dt.weekday is', dt.weekday())
         if dt.weekday() + 1 not in self.day:  # today this line is not running
             return QueryStatus.NOT_TODAY
         t_int = int(time.strftime('%H%M', time.localtime(ts)))
@@ -72,7 +71,7 @@ class BusSchedule:
     @staticmethod
     def parse_line(lines: list) -> BusLine:
         # the line configuration files' line breaking should be UNIX-Style
-        lines = [l[:-1] for l in lines if l and '\n' != l and not l.startswith('#')]
+        lines = [l.replace('\n', '') for l in lines if l and '\n' != l and not l.startswith('#')]
         try:
             assert lines[0].startswith('id:')
             assert lines[1].startswith('group:')
@@ -85,13 +84,14 @@ class BusSchedule:
             'id': lines[0].split(':', 1)[-1],
             'group': lines[1].split(':', 1)[-1],
             'name': lines[2].split(':', 1)[-1],
-            'day': map(int, lines[3].split(':', 1)[-1].split(',')),
+            'day': [int(i) for i in lines[3].split(':', 1)[-1].split(',')],
             'route': lines[4].split(':', 1)[-1],
             'time_list': list()
         }
         for l in lines[5:]:
             result['time_list'].append(int(''.join(l.split(':'))))
         result['time_list'].sort()
+
         return BusLine(**result)
 
     def get_all_lines_next(self, t=time.time()):
@@ -104,9 +104,7 @@ class BusSchedule:
         """
         results = dict()
         for line in self.lines:
-            print(line.name)
             r = line.get_next(t)
-            print(r)
             if results.get(line.group) is not None:
                 if results[line.group] == QueryStatus.NOT_TODAY:
                     # every result can override NOT_TODAY
@@ -117,7 +115,7 @@ class BusSchedule:
                         results[line.group] = r
                 else:
                     # if is a time result, take the latest
-                    if r < results[line.group]:
+                    if results[line.group] > r >= 0:
                         results[line.group] = r
             else:
                 results[line.group] = r
