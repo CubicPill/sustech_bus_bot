@@ -1,13 +1,23 @@
 from telegram.ext import Updater, CommandHandler
 import json
-from utils import BusSchedule
+from utils import BusSchedule, QueryStatus
 
 config = dict()
 sched: BusSchedule = None
 
 
 def next_bus(bot, update):
-    sched.get_all_lines_next()
+    result = sched.get_all_lines_next()
+    text = ''
+    for group_id, (t, line_id) in result.items():
+        if t == QueryStatus.MISS_LAST:
+            r_str = '末班车已开出'
+        elif t == QueryStatus.NOT_TODAY:
+            r_str = '今日不运行'
+        else:
+            t = list(str((t)))
+            t.insert(-2, ':')
+            r_str = ''.join(t)
 
 
 def lines(bot, update):

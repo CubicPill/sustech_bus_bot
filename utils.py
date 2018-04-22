@@ -11,12 +11,36 @@ class QueryStatus(IntEnum):
 
 class BusLine:
     def __init__(self, id, name, group, day, route, time_list):
-        self.id = id
-        self.name = name
-        self.group = group
-        self.day = day
-        self.route = route
-        self.time_list = time_list  # this must be sorted!
+        self._id = id
+        self._name = name
+        self._group = group
+        self._day = day
+        self._route = route
+        self._time_list = time_list  # this must be sorted!
+
+    @property
+    def id(self):
+        return self._id
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def group(self):
+        return self._group
+
+    @property
+    def day(self):
+        return self._day
+
+    @property
+    def route(self):
+        return self._route
+
+    @property
+    def time_list(self):
+        return self._time_list
 
     @staticmethod
     def bin_search(time_list: list, t_int: int) -> int:
@@ -31,12 +55,12 @@ class BusLine:
 
     def get_next(self, ts: float) -> int:
         dt = datetime.datetime.fromtimestamp(ts)
-        if dt.weekday() + 1 not in self.day:  # today this line is not running
+        if dt.weekday() + 1 not in self._day:  # today this line is not running
             return QueryStatus.NOT_TODAY
         t_int = int(time.strftime('%H%M', time.localtime(ts)))
-        if t_int > self.time_list[-1]:  # if is after the last bus of the day
+        if t_int > self._time_list[-1]:  # if is after the last bus of the day
             return QueryStatus.MISS_LAST
-        return self.bin_search(self.time_list, t_int)
+        return self.bin_search(self._time_list, t_int)
 
     def add_override(self):
         pass
@@ -45,15 +69,15 @@ class BusLine:
 class BusSchedule:
     def __init__(self):
 
-        self.lines = list()
-        self.override_detail = list()
-        self.groups = dict()
+        self._lines = dict()
+        self._groups = dict()
         self._read_line_info()
 
     def _read_line_info(self):
         for filename in os.listdir('./lines'):
             with open(os.path.join('./lines', filename), encoding='utf8') as f:
-                self.lines.append(self.parse_line(f.readlines()))
+                l = self.parse_line(f.readlines())
+                self._lines[l.id] = l
 
         with open('./date_override.txt', encoding='utf8') as f:
             self.parse_overrides(f.readlines())
@@ -61,7 +85,7 @@ class BusSchedule:
             for line in f.readlines():
                 if line:
                     group, description = line.split(':')
-                    self.groups[group] = description
+                    self._groups[group] = description
 
     @staticmethod
     def parse_overrides(lines: list):
@@ -103,26 +127,29 @@ class BusSchedule:
         :return: dict
         """
         results = dict()
-        for line in self.lines:
+        for line in self._lines.values():
             r = line.get_next(t)
             if results.get(line.group) is not None:
-                if results[line.group] == QueryStatus.NOT_TODAY:
+                if results[line.group][0] == QueryStatus.NOT_TODAY:
                     # every result can override NOT_TODAY
-                    results[line.group] = r
-                elif results[line.group] == QueryStatus.MISS_LAST:
+                    results[line.group] = [r, line.id]
+                elif results[line.group][0] == QueryStatus.MISS_LAST:
                     # if result is not NOT_TODAY, every result can override MISS_LAST
                     if r != QueryStatus.NOT_TODAY:
-                        results[line.group] = r
+                        results[line.group] = [r, line.id]
                 else:
                     # if is a time result, take the latest
-                    if results[line.group] > r >= 0:
-                        results[line.group] = r
+                    if results[line.group][0] > r >= 0:
+                        results[line.group] = [r, line.id]
             else:
-                results[line.group] = r
+                results[line.group] = [r, line.id]
         return results
 
-    def get_line_detail(self, line_id):
-        pass
+    def get_line(self, line_id):
+        return self._lines.get(line_id)
 
-    def get_all_lines(self):
-        pass
+    def get_all_lines_id(self):
+        return list(self._lines.keys())
+
+    def get_group_def(self, group_id):
+        return self._groups.get(group_id)
