@@ -3,6 +3,8 @@ import datetime
 import os
 from enum import IntEnum
 
+WEEKDAYS = ['周一', '周二', '周三', '周四', '周五', '周六', '周日', ]
+
 
 class QueryStatus(IntEnum):
     MISS_LAST = -1
@@ -17,6 +19,22 @@ class BusLine:
         self._day = day
         self._route = route
         self._time_list = time_list  # this must be sorted!
+
+    @staticmethod
+    def time_to_string(int_t: int):
+        t = list(str(int_t))
+        t.insert(-2, ':')
+        return ''.join(t)
+
+    def to_string(self):
+        lines = list()
+        lines.append('ID: ' + self._id)
+        lines.append('名称: ' + self._name)
+        lines.append('分组: ' + self._group)
+        lines.append('运行时间: ' + ', '.join([WEEKDAYS[d - 1] for d in self._day]))
+        lines.append('路线: ' + self._route)
+        lines.append('发车时刻: ' + ', '.join(self.time_to_string(int_t) for int_t in self._time_list))
+        return '\n'.join(lines)
 
     @property
     def id(self):
@@ -84,12 +102,13 @@ class BusSchedule:
         with open('group_def.txt', encoding='utf8') as f:
             for line in f.readlines():
                 if line:
+                    line = line.replace('\n', '')
                     group, description = line.split(':')
                     self._groups[group] = description
 
     @staticmethod
     def parse_overrides(lines: list):
-        lines = [l for l in lines if l and '\n' != l and not l.startswith('#')]
+        lines = [l.replace('\n', '') for l in lines if l and '\n' != l and not l.startswith('#')]
         return [l.split(' ', 1) for l in lines]
 
     @staticmethod
@@ -145,11 +164,14 @@ class BusSchedule:
                 results[line.group] = [r, line.id]
         return results
 
-    def get_line(self, line_id):
+    def get_line(self, line_id) -> BusLine or None:
         return self._lines.get(line_id)
+
+    def get_all_lines_brief(self):
+        pass
 
     def get_all_lines_id(self):
         return list(self._lines.keys())
 
-    def get_group_def(self, group_id):
+    def get_group_def(self, group_id) -> str or None:
         return self._groups.get(group_id)
