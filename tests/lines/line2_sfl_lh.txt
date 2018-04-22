@@ -1,5 +1,5 @@
 id:line2-2
-group:line2-1
+group:line2-2
 name:工作日 集悦城-荔园
 day:1,2,3,4,5
 route:集悦城→六号门→荔园→慧园

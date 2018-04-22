@@ -3,11 +3,11 @@ import json
 from utils import BusSchedule
 
 config = dict()
-sched = None
+sched: BusSchedule = None
 
 
 def next_bus(bot, update):
-    pass
+    sched.get_all_lines_next()
 
 
 def lines(bot, update):
@@ -28,13 +28,13 @@ def main():
         config = json.load(f)
     updater = Updater(config['token'])
     global sched
-    sched = BusSchedule(config['line_folder'], override=config['data_file'])
+    sched = BusSchedule()
     updater.dispatcher.add_handler(CommandHandler('next', next_bus))
     updater.dispatcher.add_handler(CommandHandler('lines', lines))
     updater.dispatcher.add_handler(CommandHandler('detail', detail))
     updater.dispatcher.add_handler(CommandHandler('help', show_help))
-    updater.start_polling()
-    updater.idle()
+    # updater.start_polling()
+    # updater.idle()
 
 
 if __name__ == '__main__':

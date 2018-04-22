@@ -10,9 +10,10 @@ class QueryStatus(IntEnum):
 
 
 class BusLine:
-    def __init__(self, id, name, day, route, time_list):
+    def __init__(self, id, name, group, day, route, time_list):
         self.id = id
         self.name = name
+        self.group = group
         self.day = day
         self.route = route
         self.time_list = time_list  # this must be sorted!
@@ -29,7 +30,8 @@ class BusLine:
         return time_list[i]
 
     def get_next(self, ts: float) -> int:
-        dt = datetime.datetime.utcfromtimestamp(ts)
+        dt = datetime.datetime.fromtimestamp(ts)
+        print('dt.weekday is', dt.weekday())
         if dt.weekday() + 1 not in self.day:  # today this line is not running
             return QueryStatus.NOT_TODAY
         t_int = int(time.strftime('%H%M', time.localtime(ts)))
@@ -42,19 +44,25 @@ class BusLine:
 
 
 class BusSchedule:
-    def __init__(self, folder, override=None):
-        self.folder = folder
-        self.override_file = override
+    def __init__(self):
+
         self.lines = list()
         self.override_detail = list()
+        self.groups = dict()
+        self._read_line_info()
 
     def _read_line_info(self):
-        for filename in os.listdir(self.folder):
-            with open(os.path.join(self.folder, filename)) as f:
+        for filename in os.listdir('./lines'):
+            with open(os.path.join('./lines', filename), encoding='utf8') as f:
                 self.lines.append(self.parse_line(f.readlines()))
-        if self.override_file:
-            with open(os.path.join(os.path.join(self.override_file))) as f:
-                self.parse_overrides(f.readlines())
+
+        with open('./date_override.txt', encoding='utf8') as f:
+            self.parse_overrides(f.readlines())
+        with open('group_def.txt', encoding='utf8') as f:
+            for line in f.readlines():
+                if line:
+                    group, description = line.split(':')
+                    self.groups[group] = description
 
     @staticmethod
     def parse_overrides(lines: list):
@@ -64,7 +72,7 @@ class BusSchedule:
     @staticmethod
     def parse_line(lines: list) -> BusLine:
         # the line configuration files' line breaking should be UNIX-Style
-        lines = [l for l in lines if l and '\n' != l and not l.startswith('#')]
+        lines = [l[:-1] for l in lines if l and '\n' != l and not l.startswith('#')]
         try:
             assert lines[0].startswith('id:')
             assert lines[1].startswith('group:')
@@ -73,8 +81,6 @@ class BusSchedule:
             assert lines[4].startswith('route:')
         except AssertionError:
             raise ValueError('Invalid line configuration data')
-        if '\n' in lines[0]:
-            print('\\n seen')
         result = {
             'id': lines[0].split(':', 1)[-1],
             'group': lines[1].split(':', 1)[-1],
@@ -98,7 +104,9 @@ class BusSchedule:
         """
         results = dict()
         for line in self.lines:
+            print(line.name)
             r = line.get_next(t)
+            print(r)
             if results.get(line.group) is not None:
                 if results[line.group] == QueryStatus.NOT_TODAY:
                     # every result can override NOT_TODAY
