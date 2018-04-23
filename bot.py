@@ -4,13 +4,13 @@ import json
 from utils import BusSchedule, QueryStatus, BusLine
 
 config = dict()
-sched: BusSchedule = None
+sched = None
 
 
 def next_bus(bot: Bot, update: Update):
     result = sched.get_all_lines_next()
     text = list()
-    for group_id, (int_t, line_id) in result.items():
+    for group_id, (int_t, line_id) in sorted(result.items(), key=lambda x: x[0]):
         text.append(sched.get_group_def(group_id) + ':')
 
         if int_t == QueryStatus.MISS_LAST:
