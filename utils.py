@@ -12,13 +12,14 @@ class QueryStatus(IntEnum):
 
 
 class BusLine:
-    def __init__(self, id, name, group, day, route, time_list):
+    def __init__(self, id, name, group, day, route, time_list, date_overrides=None):
         self._id = id
         self._name = name
         self._group = group
         self._day = day
         self._route = route
         self._time_list = time_list  # this must be sorted!
+        self._date_overrides = date_overrides
 
     @staticmethod
     def time_to_string(int_t: int):
@@ -35,6 +36,14 @@ class BusLine:
         lines.append('路线: ' + self._route)
         lines.append('发车时刻: ' + ', '.join(self.time_to_string(int_t) for int_t in self._time_list))
         return '\n'.join(lines)
+
+    @property
+    def date_overrides(self):
+        return self._date_overrides
+
+    @date_overrides.setter
+    def date_overrides(self, value):
+        self._date_overrides = value
 
     @property
     def id(self):
@@ -71,17 +80,23 @@ class BusLine:
                 i = mid + 1
         return time_list[i]
 
-    def get_next(self, ts: float) -> int:
+    def get_day_in_week(self, ts) -> int:
         dt = datetime.datetime.fromtimestamp(ts)
-        if dt.weekday() + 1 not in self._day:  # today this line is not running
+        time_str = time.strftime('%Y-%m-%d', time.localtime(ts))
+        if self._date_overrides.get(time_str):
+            day_in_week = self._date_overrides[time_str]
+        else:
+            day_in_week = dt.weekday() + 1
+        return day_in_week
+
+    def get_next(self, ts: float) -> int:
+
+        if self.get_day_in_week(ts) not in self._day:  # today this line is not running
             return QueryStatus.NOT_TODAY
         t_int = int(time.strftime('%H%M', time.localtime(ts)))
         if t_int > self._time_list[-1]:  # if is after the last bus of the day
             return QueryStatus.MISS_LAST
         return self.bin_search(self._time_list, t_int)
-
-    def add_override(self):
-        pass
 
 
 class BusSchedule:
@@ -89,16 +104,18 @@ class BusSchedule:
 
         self._lines = dict()
         self._groups = dict()
+        self._date_overrides = list()
         self._read_line_info()
 
     def _read_line_info(self):
+        with open('./date_override.txt', encoding='utf8') as f:
+            self._date_overrides = self.parse_overrides(f.readlines())
         for filename in os.listdir('./lines'):
             with open(os.path.join('./lines', filename), encoding='utf8') as f:
                 l = self.parse_line(f.readlines())
+                l.date_overrides = self._date_overrides
                 self._lines[l.id] = l
 
-        with open('./date_override.txt', encoding='utf8') as f:
-            self.parse_overrides(f.readlines())
         with open('group_def.txt', encoding='utf8') as f:
             for line in f.readlines():
                 if line:
@@ -107,9 +124,14 @@ class BusSchedule:
                     self._groups[group] = description
 
     @staticmethod
-    def parse_overrides(lines: list):
+    def parse_overrides(lines: list) -> dict:
+        result = dict()
         lines = [l.replace('\n', '') for l in lines if l and '\n' != l and not l.startswith('#')]
-        return [l.split(' ', 1) for l in lines]
+        for l in lines:
+            t_str, day = l.split(' ', 1)
+            day = int(day)
+            result[t_str] = day
+        return result
 
     @staticmethod
     def parse_line(lines: list) -> BusLine:
