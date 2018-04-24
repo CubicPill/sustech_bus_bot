@@ -23,11 +23,11 @@ class BusLine:
         self._day = day
         self._route = route
         self._time_list = time_list  # this must be sorted!
-        self._date_overrides = date_overrides
+        self._date_overrides = date_overrides if date_overrides else dict()
 
     @staticmethod
     def time_to_string(int_t: int):
-        t = list(str(int_t))
+        t = ['0'] * (3 - len(str(int_t))) + list(str(int_t))
         t.insert(-2, ':')
         return ''.join(t)
 
@@ -48,6 +48,9 @@ class BusLine:
     @date_overrides.setter
     def date_overrides(self, value):
         self._date_overrides = value
+
+    def add_override_date(self, date: str, day: int):
+        self._date_overrides[date] = day
 
     @property
     def id(self):
