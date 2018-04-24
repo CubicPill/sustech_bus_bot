@@ -2,8 +2,12 @@ import time
 import datetime
 import os
 from enum import IntEnum
+from globals import get_config, get_logger
 
 WEEKDAYS = ['周一', '周二', '周三', '周四', '周五', '周六', '周日', ]
+
+config = get_config()
+logger = get_logger()
 
 
 class QueryStatus(IntEnum):
@@ -90,13 +94,16 @@ class BusLine:
         return day_in_week
 
     def get_next(self, ts: float) -> int:
-
         if self.get_day_in_week(ts) not in self._day:  # today this line is not running
-            return QueryStatus.NOT_TODAY
-        t_int = int(time.strftime('%H%M', time.localtime(ts)))
-        if t_int > self._time_list[-1]:  # if is after the last bus of the day
-            return QueryStatus.MISS_LAST
-        return self.bin_search(self._time_list, t_int)
+            result = QueryStatus.NOT_TODAY
+        else:
+            t_int = int(time.strftime('%H%M', time.localtime(ts)))
+            if t_int > self._time_list[-1]:  # if is after the last bus of the day
+                result = QueryStatus.MISS_LAST
+            else:
+                result = self.bin_search(self._time_list, t_int)
+        logger.debug('{id} get_next({ts})={ret}'.format(id=self._id, ts=ts, ret=result if result > 0 else str(result)))
+        return result
 
 
 class BusSchedule:
@@ -171,9 +178,11 @@ class BusSchedule:
         for line in self._lines.values():
             r = line.get_next(t)
             if results.get(line.group) is not None:
+
                 if results[line.group][0] == QueryStatus.NOT_TODAY:
                     # every result can override NOT_TODAY
                     results[line.group] = [r, line.id]
+                    logger.debug('')
                 elif results[line.group][0] == QueryStatus.MISS_LAST:
                     # if result is not NOT_TODAY, every result can override MISS_LAST
                     if r != QueryStatus.NOT_TODAY:
@@ -189,8 +198,11 @@ class BusSchedule:
     def get_line(self, line_id) -> BusLine or None:
         return self._lines.get(line_id)
 
-    def get_all_lines_brief(self):
-        pass
+    def get_all_lines_brief(self) -> dict:
+        result = dict()
+        for _id, line in self._lines.items():
+            result[_id] = line.name
+        return result
 
     def get_all_lines_id(self):
         return list(self._lines.keys())

@@ -1,13 +1,20 @@
 from telegram.ext import Updater, CommandHandler
-from telegram import Message, Bot, Update
-import json
+from telegram import Bot, Update, ReplyKeyboardMarkup
 from utils import BusSchedule, QueryStatus, BusLine
+from globals import get_config, get_logger
+import time
+import datetime
 
-config = dict()
 sched = None
+config = get_config()
+logger = get_logger()
 
 
-def next_bus(bot: Bot, update: Update):
+def next_bus(bot: Bot, update: Update, args: list):
+    if args:
+        pass
+    ts = time.time()
+
     result = sched.get_all_lines_next()
     text = list()
     for group_id, (int_t, line_id) in sorted(result.items(), key=lambda x: x[0]):
@@ -59,14 +66,11 @@ def show_help(bot, update):
 
 
 def main():
-    global config
-    with open('config.json') as f:
-        config = json.load(f)
     updater = Updater(config['token'])
     global sched
     sched = BusSchedule()
     updater.dispatcher.add_handler(CommandHandler('start', show_help))
-    updater.dispatcher.add_handler(CommandHandler('next', next_bus))
+    updater.dispatcher.add_handler(CommandHandler('next', next_bus, pass_args=True))
     updater.dispatcher.add_handler(CommandHandler('lines', lines))
     updater.dispatcher.add_handler(CommandHandler('detail', detail, pass_args=True))
     updater.dispatcher.add_handler(CommandHandler('help', show_help))
