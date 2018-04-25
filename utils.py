@@ -46,7 +46,7 @@ class BusLine:
         return self._date_overrides
 
     @date_overrides.setter
-    def date_overrides(self, value):
+    def date_overrides(self, value: dict):
         self._date_overrides = value
 
     def add_override_date(self, date: str, day: int):
@@ -117,7 +117,7 @@ class BusSchedule:
 
         self._lines = dict()
         self._groups = dict()
-        self._date_overrides = list()
+        self._date_overrides = dict()
         self._read_line_info()
 
     def _read_line_info(self):
@@ -128,7 +128,6 @@ class BusSchedule:
                 l = self.parse_line(f.readlines())
                 l.date_overrides = self._date_overrides
                 self._lines[l.id] = l
-
         with open('group_def.txt', encoding='utf8') as f:
             for line in f.readlines():
                 if line:
@@ -156,7 +155,7 @@ class BusSchedule:
             assert lines[2].startswith('name:')
             assert lines[3].startswith('day:')
             assert lines[4].startswith('route:')
-        except AssertionError:
+        except (AssertionError, IndexError):
             raise ValueError('Invalid line configuration data')
         result = {
             'id': lines[0].split(':', 1)[-1],
