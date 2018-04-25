@@ -97,10 +97,13 @@ class BusLine:
         return day_in_week
 
     def get_next(self, ts: float) -> int:
+        logger.debug('Entering get_next({ts})'.format(ts=ts))
         if self.get_day_in_week(ts) not in self._day:  # today this line is not running
             result = QueryStatus.NOT_TODAY
         else:
             t_int = int(time.strftime('%H%M', time.localtime(ts)))
+            logger.debug('Current t_int is {t_int}'.format(t_int=t_int))
+
             if t_int > self._time_list[-1]:  # if is after the last bus of the day
                 result = QueryStatus.MISS_LAST
             else:
@@ -169,23 +172,22 @@ class BusSchedule:
 
         return BusLine(**result)
 
-    def get_all_lines_next(self, t=time.time()):
+    def get_all_lines_next(self, ts: float):
         """
         get next bus on all groups of lines
         in-group priority: latest > miss_last > not_today
 
-        :param t: timestamp
+        :param ts: timestamp
         :return: dict
         """
         results = dict()
         for line in self._lines.values():
-            r = line.get_next(t)
+            r = line.get_next(ts)
             if results.get(line.group) is not None:
 
                 if results[line.group][0] == QueryStatus.NOT_TODAY:
                     # every result can override NOT_TODAY
                     results[line.group] = [r, line.id]
-                    logger.debug('')
                 elif results[line.group][0] == QueryStatus.MISS_LAST:
                     # if result is not NOT_TODAY, every result can override MISS_LAST
                     if r != QueryStatus.NOT_TODAY:

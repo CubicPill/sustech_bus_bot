@@ -15,7 +15,7 @@ def next_bus(bot: Bot, update: Update, args: list):
         pass
     ts = time.time()
 
-    result = sched.get_all_lines_next()
+    result = sched.get_all_lines_next(ts)
     text = list()
     for group_id, (int_t, line_id) in sorted(result.items(), key=lambda x: x[0]):
         text.append(sched.get_group_def(group_id) + ':')
@@ -34,7 +34,8 @@ def next_bus(bot: Bot, update: Update, args: list):
 
 
 def lines(bot: Bot, update: Update):
-    update.message.reply_text(sched.get_all_lines_brief())
+    all_lines = sched.get_all_lines_brief()
+    update.message.reply_text('\n'.join([': '.join([k, v]) for k, v in all_lines.items()]))
 
 
 def detail(bot: Bot, update: Update, args: list):
