@@ -3,7 +3,6 @@ from telegram import Bot, Update, ReplyKeyboardMarkup
 from utils import BusSchedule, QueryStatus, BusLine
 from globals import get_config, get_logger
 import time
-import datetime
 
 sched = None
 config = get_config()
@@ -14,7 +13,7 @@ def next_bus(bot: Bot, update: Update, args: list):
     if args:
         pass
     ts = time.time()
-
+    logger.info('Incoming request by user @{}'.format(update.message.from_user.username))
     result = sched.get_all_lines_next(ts)
     text = list()
     for group_id, (int_t, line_id) in sorted(result.items(), key=lambda x: x[0]):
@@ -40,8 +39,7 @@ def lines(bot: Bot, update: Update):
 
 def detail(bot: Bot, update: Update, args: list):
     if not args:
-        # TODO: show buttons
-        update.message.reply_text('请输入线路 id!')
+        update.message.reply_text('请输入线路 id! 向机器人发送 /lines 获取全部线路信息')
         return
     line = sched.get_line(args[0])
     if line:
