@@ -13,6 +13,7 @@ logger = get_logger()
 class QueryStatus(IntEnum):
     MISS_LAST = -1
     NOT_TODAY = -2
+    BEFORE_FIRST = -3
 
 
 class BusLine:
@@ -85,7 +86,7 @@ class BusLine:
                 j = mid
             else:
                 i = mid + 1
-        return time_list[i]
+        return i
 
     def get_day_in_week(self, ts) -> int:
         dt = datetime.datetime.fromtimestamp(ts)
@@ -107,8 +108,26 @@ class BusLine:
             if t_int > self._time_list[-1]:  # if is after the last bus of the day
                 result = QueryStatus.MISS_LAST
             else:
-                result = self.bin_search(self._time_list, t_int)
+                result = self.time_list[self.bin_search(self._time_list, t_int)]
         logger.debug('{id} get_next({ts})={ret}'.format(id=self._id, ts=ts, ret=result if result > 0 else str(result)))
+        return result
+
+    def get_current_en_route(self, ts: float) -> int:
+        logger.debug('Entering get_current_en_route({ts})'.format(ts=ts))
+        if self.get_day_in_week(ts) not in self._day:  # today this line is not running
+            result = QueryStatus.NOT_TODAY
+        else:
+            t_int = int(time.strftime('%H%M', time.localtime(ts)))
+            logger.debug('Current t_int is {t_int}'.format(t_int=t_int))
+
+            if t_int < self._time_list[0]:  # if is before the first bus of the day
+                result = QueryStatus.BEFORE_FIRST
+            elif t_int > self._time_list[-1]:
+                result = self._time_list[-1]
+            else:
+                result = self.time_list[self.bin_search(self._time_list, t_int) - 1]
+        logger.debug('{id} get_current_en_route({ts})={ret}'.format(id=self._id, ts=ts,
+                                                                    ret=result if result > 0 else str(result)))
         return result
 
 
@@ -192,8 +211,36 @@ class BusSchedule:
                     if r != QueryStatus.NOT_TODAY:
                         results[line.group] = [r, line.id]
                 else:
-                    # if is a time result, take the latest
+                    # if is a time result, take the latest (the earlier)
                     if results[line.group][0] > r >= 0:
+                        results[line.group] = [r, line.id]
+            else:
+                results[line.group] = [r, line.id]
+        return results
+
+    def get_all_lines_current(self, ts: float):
+        """
+        get current en route bus on all groups of lines
+        in-group priority: latest > before_first > not_today
+
+        :param ts: timestamp
+        :return: dict
+        """
+        results = dict()
+        for line in self._lines.values():
+            r = line.get_current_en_route(ts)
+            if results.get(line.group) is not None:
+
+                if results[line.group][0] == QueryStatus.NOT_TODAY:
+                    # every result can override NOT_TODAY
+                    results[line.group] = [r, line.id]
+                elif results[line.group][0] == QueryStatus.BEFORE_FIRST:
+                    # if result is not NOT_TODAY, every result can override BEFORE_FIRST
+                    if r != QueryStatus.NOT_TODAY:
+                        results[line.group] = [r, line.id]
+                else:
+                    # if is a time result, take the latest (the later)
+                    if results[line.group][0] < r:
                         results[line.group] = [r, line.id]
             else:
                 results[line.group] = [r, line.id]
