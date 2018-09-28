@@ -1,5 +1,5 @@
 id:line1-2-peak
-group:line1-2
+group:line1-2-peak
 name:工作日高峰期 科研楼-欣园
 day:1,2,3,4,5
 route:科研楼→荔园→慧园→欣园
