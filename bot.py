@@ -15,12 +15,33 @@ def next_bus(bot: Bot, update: Update, args: list):
     ts = time.time()
     logger.info('Incoming request by user @{}'.format(update.message.from_user.username))
     result = sched.get_all_lines_next(ts)
-    text = list()
+    text = ['下一班车']
     for group_id, (int_t, line_id) in sorted(result.items(), key=lambda x: x[0]):
         text.append(sched.get_group_def(group_id) + ':')
         if int_t == QueryStatus.MISS_LAST:
             text.append(sched.get_line(line_id).name)
             r_str = '末班车已开出'
+        elif int_t == QueryStatus.NOT_TODAY:
+            r_str = '今日不运行'
+        else:
+            text.append(sched.get_line(line_id).name)
+            r_str = BusLine.time_to_string(int_t)
+        text.append(r_str)
+    update.message.reply_text('\n'.join(text))
+
+
+def current_bus(bot: Bot, update: Update, args: list):
+    if args:
+        pass
+    ts = time.time()
+    logger.info('Incoming request by user @{}'.format(update.message.from_user.username))
+    result = sched.get_all_lines_current(ts)
+    text = ['上一班车']
+    for group_id, (int_t, line_id) in sorted(result.items(), key=lambda x: x[0]):
+        text.append(sched.get_group_def(group_id) + ':')
+        if int_t == QueryStatus.BEFORE_FIRST:
+            text.append(sched.get_line(line_id).name)
+            r_str = '第一班车尚未发出'
         elif int_t == QueryStatus.NOT_TODAY:
             r_str = '今日不运行'
         else:
@@ -54,6 +75,7 @@ def show_help(bot, update):
         '',
         '详细命令:',
         '/next              查询下一班校巴发车时间',
+        '/current           查询当前已发出的校巴',
         '/lines             查看当前所有线路',
         '/detail <line_id>  查看线路详情',
         '/help              显示此帮助',
@@ -68,6 +90,7 @@ def main():
     sched = BusSchedule()
     updater.dispatcher.add_handler(CommandHandler('start', show_help))
     updater.dispatcher.add_handler(CommandHandler('next', next_bus, pass_args=True))
+    updater.dispatcher.add_handler(CommandHandler('current', current_bus, pass_args=True))
     updater.dispatcher.add_handler(CommandHandler('lines', lines))
     updater.dispatcher.add_handler(CommandHandler('detail', detail, pass_args=True))
     updater.dispatcher.add_handler(CommandHandler('help', show_help))

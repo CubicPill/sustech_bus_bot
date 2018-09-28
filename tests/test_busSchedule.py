@@ -45,6 +45,32 @@ class TestBusSchedule(TestCase):
                               'line2-2': [QueryStatus.MISS_LAST, 'line2-2']
                               })
 
+    def test_get_all_lines_current(self):
+        self.assertDictEqual(sched.get_all_lines_current(datetime.datetime(2018, 4, 25, 16, 46, 44, 139715).timestamp()),
+                             {'line1-1': [1640, 'line1-1'],
+                              'line1-2': [1640, 'line1-2'],
+                              'line2-1': [1240, 'line2-1'],
+                              'line2-2': [1330, 'line2-2']
+                              })
+        self.assertDictEqual(sched.get_all_lines_current(datetime.datetime(2018, 4, 25, 23, 46, 44, 139715).timestamp()),
+                             {'line1-1': [2100, 'line1-1'],
+                              'line1-2': [2200, 'line1-2'],
+                              'line2-1': [2220, 'line2-1'],
+                              'line2-2': [1330, 'line2-2']
+                              })
+        self.assertDictEqual(sched.get_all_lines_current(datetime.datetime(2018, 4, 22, 23, 46, 44, 139715).timestamp()),
+                             {'line1-1': [2100, 'line1-1-weekend'],
+                              'line1-2': [2200, 'line1-2-weekend'],
+                              'line2-1': [QueryStatus.NOT_TODAY, 'line2-1'],
+                              'line2-2': [QueryStatus.NOT_TODAY, 'line2-2']
+                              })
+        self.assertDictEqual(sched.get_all_lines_current(datetime.datetime(2018, 4, 28, 16, 46, 44, 139715).timestamp()),
+                             {'line1-1': [1640, 'line1-1'],
+                              'line1-2': [1640, 'line1-2'],
+                              'line2-1': [1240, 'line2-1'],
+                              'line2-2': [1330, 'line2-2']
+                              })
+
     def test_get_all_lines_brief(self):
         self.assertDictEqual(sched.get_all_lines_brief(),
                              {'line1-1': '工作日非高峰期 欣园-科研楼',
