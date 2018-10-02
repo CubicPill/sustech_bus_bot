@@ -1,23 +1,29 @@
-from telegram.ext import Updater, CommandHandler
-from telegram import Bot, Update, ReplyKeyboardMarkup
-from utils import BusSchedule, QueryStatus, BusLine
-from globals import get_config, get_logger
 import time
+
+from telegram import Bot, Update
+from telegram.ext import Updater, CommandHandler
+
+from globals import get_config, get_logger
+from utils import BusSchedule, QueryStatus, BusLine
 
 sched = None
 config = get_config()
 logger = get_logger()
 
 
-def next_bus(bot: Bot, update: Update, args: list):
-    if args:
-        pass
+def bus_info(bot, update, type):
     ts = time.time()
     logger.info('Incoming request by user @{}'.format(update.message.from_user.username))
-    result = sched.get_all_lines_next(ts)
-    text = ['下一班车']
+    if type == 1:
+        result = sched.get_all_lines_next(ts)
+        text = ['下一班车']
+
+    else:
+        result = sched.get_all_lines_current(ts)
+        text = ['上一班车']
+    text.append('')
     for group_id, (int_t, line_id) in sorted(result.items(), key=lambda x: x[0]):
-        text.append(sched.get_group_def(group_id) + ':')
+        text.append('<b>{}</b>'.format(sched.get_group_def(group_id) + ':'))
         if int_t == QueryStatus.MISS_LAST:
             text.append(sched.get_line(line_id).name)
             r_str = '末班车已开出'
@@ -25,30 +31,18 @@ def next_bus(bot: Bot, update: Update, args: list):
             r_str = '今日不运行'
         else:
             text.append(sched.get_line(line_id).name)
-            r_str = BusLine.time_to_string(int_t)
+            r_str = '<code>{}</code>'.format(BusLine.time_to_string(int_t))
         text.append(r_str)
-    update.message.reply_text('\n'.join(text))
+        text.append('')
+    update.message.reply_text('\n'.join(text), parse_mode='HTML')
+
+
+def next_bus(bot: Bot, update: Update, args: list):
+    bus_info(bot, update, 1)
 
 
 def current_bus(bot: Bot, update: Update, args: list):
-    if args:
-        pass
-    ts = time.time()
-    logger.info('Incoming request by user @{}'.format(update.message.from_user.username))
-    result = sched.get_all_lines_current(ts)
-    text = ['上一班车']
-    for group_id, (int_t, line_id) in sorted(result.items(), key=lambda x: x[0]):
-        text.append(sched.get_group_def(group_id) + ':')
-        if int_t == QueryStatus.BEFORE_FIRST:
-            text.append(sched.get_line(line_id).name)
-            r_str = '第一班车尚未发出'
-        elif int_t == QueryStatus.NOT_TODAY:
-            r_str = '今日不运行'
-        else:
-            text.append(sched.get_line(line_id).name)
-            r_str = BusLine.time_to_string(int_t)
-        text.append(r_str)
-    update.message.reply_text('\n'.join(text))
+    bus_info(bot, update, 0)
 
 
 def lines(bot: Bot, update: Update):
