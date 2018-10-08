@@ -11,7 +11,18 @@ config = get_config()
 logger = get_logger()
 
 
-def bus_info(bot, update, type):
+def disable_in_group(func):
+    def wrapper(*args, **kwargs):
+        update = args[1]
+        if update.message.from_user.id != update.message.chat_id:
+            update.message.reply_text('请私聊机器人')
+            return
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
+def bus_info(bot: Bot, update: Update, type):
     ts = time.time()
     logger.info('Incoming request by user @{}'.format(update.message.from_user.username))
     if type == 1:
@@ -37,19 +48,23 @@ def bus_info(bot, update, type):
     update.message.reply_text('\n'.join(text), parse_mode='HTML')
 
 
+@disable_in_group
 def next_bus(bot: Bot, update: Update, args: list):
     bus_info(bot, update, 1)
 
 
+@disable_in_group
 def current_bus(bot: Bot, update: Update, args: list):
     bus_info(bot, update, 0)
 
 
+@disable_in_group
 def lines(bot: Bot, update: Update):
     all_lines = sched.get_all_lines_brief()
     update.message.reply_text('\n'.join([': '.join([k, v]) for k, v in all_lines.items()]))
 
 
+@disable_in_group
 def detail(bot: Bot, update: Update, args: list):
     if not args:
         update.message.reply_text('请输入线路 id! 向机器人发送 /lines 获取全部线路信息')
