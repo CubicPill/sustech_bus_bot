@@ -2,7 +2,7 @@ id:line2-2-weekend
 group:line2-2
 name:节假日 集悦城-荔园
 day:6,7
-route:集悦城→六号门→荔园→慧园
+route:集悦城B区→集悦城A区→六号门→荔园→慧园
 
 7:20
 8:00
