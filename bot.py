@@ -38,6 +38,9 @@ def bus_info(bot: Bot, update: Update, type):
         if int_t == QueryStatus.MISS_LAST:
             text.append(sched.get_line(line_id).name)
             r_str = '末班车已开出'
+        elif int_t == QueryStatus.BEFORE_FIRST:
+            text.append(sched.get_line(line_id).name)
+            r_str = '第一班车尚未发出'
         elif int_t == QueryStatus.NOT_TODAY:
             r_str = '今日不运行'
         else:
