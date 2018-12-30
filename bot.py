@@ -1,7 +1,9 @@
+import os
+import pickle
 import time
 
 from telegram import Bot, Update
-from telegram.ext import Updater, CommandHandler
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 
 from globals import get_config, get_logger
 from utils import BusSchedule, QueryStatus, BusLine
@@ -9,6 +11,7 @@ from utils import BusSchedule, QueryStatus, BusLine
 sched = None
 config = get_config()
 logger = get_logger()
+users = dict()
 
 
 def disable_in_group(func):
@@ -24,7 +27,8 @@ def disable_in_group(func):
 
 def bus_info(bot: Bot, update: Update, type):
     ts = time.time()
-    logger.info('Incoming request by user @{}'.format(update.message.from_user.username))
+    logger.info('[Incoming request] @{usn},{uid}'.format(usn=update.message.from_user.username,
+                                                         uid=update.message.from_user.id))
     if type == 1:
         result = sched.get_all_lines_next(ts)
         text = ['下一班车']
@@ -96,10 +100,22 @@ def show_help(bot, update):
     update.message.reply_text('\n'.join(text))
 
 
+def record_user(bot, update):
+    users[update.message.from_user.id] = [update.message.from_user.username, update.message.from_user.first_name,
+                                          update.message.from_user.last_name]
+    with open('users.pickle', 'wb') as f:
+        pickle.dump(users, f)
+
+
 def main():
+    if os.path.isfile('users.pickle'):
+        global users
+        with open('users.pickle', 'rb') as f:
+            users = pickle.load(f)
     updater = Updater(config['token'])
     global sched
     sched = BusSchedule()
+    updater.dispatcher.add_handler(MessageHandler(Filters.all, record_user), group=2)
     updater.dispatcher.add_handler(CommandHandler('start', show_help))
     updater.dispatcher.add_handler(CommandHandler('next', next_bus, pass_args=True))
     updater.dispatcher.add_handler(CommandHandler('current', current_bus, pass_args=True))
