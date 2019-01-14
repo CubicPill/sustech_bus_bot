@@ -1,7 +1,9 @@
-import time
 import datetime
+import json
 import os
+import time
 from enum import IntEnum
+
 from globals import get_config, get_logger
 
 WEEKDAYS = ['周一', '周二', '周三', '周四', '周五', '周六', '周日', ]
@@ -39,8 +41,20 @@ class BusLine:
         lines.append('分组: ' + self._group)
         lines.append('运行时间: ' + ', '.join([WEEKDAYS[d - 1] for d in self._day]))
         lines.append('路线: ' + self._route)
-        lines.append('发车时刻: ' + ', '.join(self.time_to_string(int_t) for int_t in self._time_list))
+        lines.append('发车时刻: ' + ', '.join([self.time_to_string(int_t) for int_t in self._time_list]))
         return '\n'.join(lines)
+
+    def to_dict(self):
+        return {
+            'id': self._id,
+            'name': self._name,
+            'time': self._day,
+            'route': self._route,
+            'schedule': [self.time_to_string(int_t) for int_t in self._time_list]
+        }
+
+    def to_json(self):
+        return json.dumps(self.to_dict())
 
     @property
     def date_overrides(self):
