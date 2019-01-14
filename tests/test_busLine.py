@@ -1,6 +1,7 @@
-from unittest import TestCase
-from utils import BusLine, QueryStatus
 import datetime
+from unittest import TestCase
+
+from utils import BusLine, QueryStatus
 
 r = {
     'id': 'testLine1',
@@ -62,3 +63,10 @@ class TestBusLine(TestCase):
         self.assertEqual(bl.get_day_in_week(datetime.datetime(2018, 4, 22, 16, 46, 44, 139715).timestamp()), 7)
         bl.add_override_date('2018-04-22', 4)
         self.assertEqual(bl.get_day_in_week(datetime.datetime(2018, 4, 22, 16, 46, 44, 139715).timestamp()), 4)
+        bl.add_override_date('2018-04-22', 0)
+        self.assertEqual(bl.get_day_in_week(datetime.datetime(2018, 4, 22, 16, 46, 44, 139715).timestamp()), 0)
+
+    def test_override_all(self):
+        bl.add_override_date('2019-01-14', 0)
+        self.assertEqual(bl.get_next(datetime.datetime(2019, 1, 14, 21, 46, 44, 139715).timestamp()),
+                         QueryStatus.NOT_TODAY)

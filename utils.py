@@ -91,7 +91,7 @@ class BusLine:
     def get_day_in_week(self, ts) -> int:
         dt = datetime.datetime.fromtimestamp(ts)
         time_str = time.strftime('%Y-%m-%d', time.localtime(ts))
-        if self._date_overrides.get(time_str):
+        if self._date_overrides.get(time_str) is not None:
             day_in_week = self._date_overrides[time_str]
         else:
             day_in_week = dt.weekday() + 1
