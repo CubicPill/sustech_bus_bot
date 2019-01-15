@@ -4,7 +4,7 @@ import time
 
 from telegram import Bot, Update
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackQueryHandler
 
 from globals import get_config, get_logger
 from utils import BusSchedule, QueryStatus, BusLine
@@ -57,12 +57,12 @@ def bus_info(bot: Bot, update: Update, type):
 
 
 @disable_in_group
-def next_bus(bot: Bot, update: Update, args: list):
+def next_bus(bot: Bot, update: Update):
     bus_info(bot, update, 1)
 
 
 @disable_in_group
-def current_bus(bot: Bot, update: Update, args: list):
+def current_bus(bot: Bot, update: Update):
     bus_info(bot, update, 0)
 
 
@@ -80,7 +80,7 @@ def detail(bot: Bot, update: Update, args: list):
         if line:
             update.message.reply_text(line.to_string())
         else:
-            update.message.reply_text('线路 "{}" 不存在!'.format(line))
+            update.message.reply_text('线路 "{}" 不存在! 请用 /lines 查询线路列表或直接发送 /detail 获取当前运行线路信息'.format(args[0]))
     else:  # no args, send buttons
         available_lines = sched.get_all_lines_brief(timestamp=time.time())
 
@@ -88,8 +88,21 @@ def detail(bot: Bot, update: Update, args: list):
         for id, name in sorted(list(available_lines.items()), key=lambda l: l[0]):
             button_list.append([InlineKeyboardButton(name, callback_data=id)])
         reply_markup = InlineKeyboardMarkup(button_list)
-        update.message.reply_text('线路列表:', reply_markup=reply_markup)
-        # TODO: add callback handler
+        update.message.reply_text('当前运行线路列表:', reply_markup=reply_markup)
+
+
+def detail_callback(bot, update):
+    query = update.callback_query
+    line_id = query.data
+    line = sched.get_line_detail(line_id)
+    if line:
+        bot.editMessageText(text=line.to_string(),
+                            chat_id=query.message.chat_id,
+                            message_id=query.message.message_id)
+    else:
+        bot.editMessageText(text='线路 "{}" 不存在!'.format(line_id),
+                            chat_id=query.message.chat_id,
+                            message_id=query.message.message_id)
 
 
 def show_help(bot, update):
@@ -104,9 +117,10 @@ def show_help(bot, update):
         '/lines             查看当前所有线路',
         '/detail <line_id>  查看线路详情',
         '/help              显示此帮助',
+        '注意: 智园线等班次较少的线路尚未加入, 但其他线路时刻表已经为最新.'
         ''
     ]
-    update.message.reply_text('\n'.join(text))
+    update.message.reply_text('\n'.join(text), disable_web_page_preview=True)
 
 
 def record_user(bot, update):
@@ -128,9 +142,10 @@ def main():
     global sched
     sched = BusSchedule()
     updater.dispatcher.add_handler(MessageHandler(Filters.all, record_user), group=2)
+    updater.dispatcher.add_handler(CallbackQueryHandler(detail_callback))
     updater.dispatcher.add_handler(CommandHandler('start', show_help))
-    updater.dispatcher.add_handler(CommandHandler('next', next_bus, pass_args=True))
-    updater.dispatcher.add_handler(CommandHandler('current', current_bus, pass_args=True))
+    updater.dispatcher.add_handler(CommandHandler('next', next_bus))
+    updater.dispatcher.add_handler(CommandHandler('current', current_bus))
     updater.dispatcher.add_handler(CommandHandler('lines', lines))
     updater.dispatcher.add_handler(CommandHandler('detail', detail, pass_args=True))
     updater.dispatcher.add_handler(CommandHandler('help', show_help))
