@@ -3,12 +3,13 @@ import pickle
 import time
 
 from telegram import Bot, Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 
 from globals import get_config, get_logger
 from utils import BusSchedule, QueryStatus, BusLine
 
-sched = None
+sched: BusSchedule = None
 config = get_config()
 logger = get_logger()
 users = dict()
@@ -40,15 +41,15 @@ def bus_info(bot: Bot, update: Update, type):
     for group_id, (int_t, line_id) in sorted(result.items(), key=lambda x: x[0]):
         text.append('<b>{}</b>'.format(sched.get_group_def(group_id) + ':'))
         if int_t == QueryStatus.MISS_LAST:
-            text.append(sched.get_line(line_id).name)
+            text.append(sched.get_line_detail(line_id).name)
             r_str = '末班车已开出'
         elif int_t == QueryStatus.BEFORE_FIRST:
-            text.append(sched.get_line(line_id).name)
+            text.append(sched.get_line_detail(line_id).name)
             r_str = '第一班车尚未发出'
         elif int_t == QueryStatus.NOT_TODAY:
             r_str = '今日不运行'
         else:
-            text.append(sched.get_line(line_id).name)
+            text.append(sched.get_line_detail(line_id).name)
             r_str = '<code>{}</code>'.format(BusLine.time_to_string(int_t))
         text.append(r_str)
         text.append('')
@@ -73,14 +74,22 @@ def lines(bot: Bot, update: Update):
 
 @disable_in_group
 def detail(bot: Bot, update: Update, args: list):
-    if not args:
-        update.message.reply_text('请输入线路 id! 向机器人发送 /lines 获取全部线路信息')
-        return
-    line = sched.get_line(args[0])
-    if line:
-        update.message.reply_text(line.to_string())
-    else:
-        update.message.reply_text('线路 "{}" 不存在!'.format(line))
+    if args:
+
+        line = sched.get_line_detail(args[0])
+        if line:
+            update.message.reply_text(line.to_string())
+        else:
+            update.message.reply_text('线路 "{}" 不存在!'.format(line))
+    else:  # no args, send buttons
+        available_lines = sched.get_all_lines_brief(timestamp=time.time())
+
+        button_list = list()
+        for id, name in sorted(list(available_lines.items()), key=lambda l: l[0]):
+            button_list.append([InlineKeyboardButton(name, callback_data=id)])
+        reply_markup = InlineKeyboardMarkup(button_list)
+        update.message.reply_text('线路列表:', reply_markup=reply_markup)
+        # TODO: add callback handler
 
 
 def show_help(bot, update):

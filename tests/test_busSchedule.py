@@ -3,7 +3,7 @@ from unittest import TestCase
 
 from utils import BusSchedule, QueryStatus
 
-sched = BusSchedule()
+sched: BusSchedule = BusSchedule()
 
 
 class TestBusSchedule(TestCase):
@@ -100,6 +100,20 @@ class TestBusSchedule(TestCase):
                               'line2-1': '工作日 荔园-集悦城',
                               'line2-1-weekend': '节假日 荔园-集悦城',
                               'line2-2': '工作日 集悦城-荔园',
+                              'line2-2-weekend': '节假日 集悦城-荔园'
+                              })
+        self.assertDictEqual(sched.get_all_lines_brief(datetime.datetime(2019, 1, 15, 16, 46, 44, 139715).timestamp()),
+                             {'line1-1': '工作日非高峰期 欣园-科研楼',
+                              'line1-1-peak': '工作日高峰期 欣园-科研楼',
+                              'line1-2': '工作日非高峰期 科研楼-欣园',
+                              'line1-2-peak': '工作日高峰期 科研楼-欣园',
+                              'line2-1': '工作日 荔园-集悦城',
+                              'line2-2': '工作日 集悦城-荔园',
+                              })
+        self.assertDictEqual(sched.get_all_lines_brief(datetime.datetime(2019, 1, 12, 16, 46, 44, 139715).timestamp()),
+                             {'line1-1-weekend': '节假日 欣园-科研楼',
+                              'line1-2-weekend': '节假日 科研楼-欣园',
+                              'line2-1-weekend': '节假日 荔园-集悦城',
                               'line2-2-weekend': '节假日 集悦城-荔园'
                               })
 

@@ -102,6 +102,9 @@ class BusLine:
                 i = mid + 1
         return i
 
+    def is_available(self, ts) -> bool:
+        return self.get_day_in_week(ts) in self._day
+
     def get_day_in_week(self, ts) -> int:
         dt = datetime.datetime.fromtimestamp(ts)
         time_str = time.strftime('%Y-%m-%d', time.localtime(ts))
@@ -260,13 +263,18 @@ class BusSchedule:
                 results[line.group] = [r, line.id]
         return results
 
-    def get_line(self, line_id) -> BusLine or None:
+    def get_line_detail(self, line_id) -> BusLine or None:
         return self._lines.get(line_id)
 
-    def get_all_lines_brief(self) -> dict:
+    def get_all_lines_brief(self, timestamp=None) -> dict:
         result = dict()
-        for _id, line in self._lines.items():
-            result[_id] = line.name
+        if timestamp is None:
+            for _id, line in self._lines.items():
+                result[_id] = line.name
+        else:
+            for _id, line in self._lines.items():
+                if line.is_available(timestamp):
+                    result[_id] = line.name
         return result
 
     def get_all_lines_id(self):
