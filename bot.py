@@ -101,6 +101,9 @@ def show_help(bot, update):
 
 
 def record_user(bot, update):
+    global users
+    with open('users.pickle', 'rb') as f:
+        users = pickle.load(f)
     users[update.message.from_user.id] = [update.message.from_user.username, update.message.from_user.first_name,
                                           update.message.from_user.last_name]
     with open('users.pickle', 'wb') as f:
