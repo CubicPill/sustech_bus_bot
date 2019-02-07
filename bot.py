@@ -83,16 +83,19 @@ def detail(bot: Bot, update: Update, args: list):
             update.message.reply_text('线路 "{}" 不存在! 请用 /lines 查询线路列表或直接发送 /detail 获取当前运行线路信息'.format(args[0]))
     else:  # no args, send buttons
         available_lines = sched.get_all_lines_brief(timestamp=time.time())
-        if not available_lines: # no line running, poor guy
-            available_lines = sched.get_all_lines_brief() # send all
+        if not available_lines:  # no line running, poor guy
+            available_lines = sched.get_all_lines_brief()  # send all
+            reply_text = '今日无运行线路, 所有线路列表如下:'
+        else:
+            reply_text = '当前运行线路列表:'
         button_list = list()
         for id, name in sorted(list(available_lines.items()), key=lambda l: l[0]):
             button_list.append([InlineKeyboardButton(name, callback_data=id)])
         reply_markup = InlineKeyboardMarkup(button_list)
         if not available_lines:
-            update.message.reply_text('今日无运行线路, 所有线路列表如下:', reply_markup=reply_markup)
+            update.message.reply_text(reply_text, reply_markup=reply_markup)
         else:
-            update.message.reply_text('当前运行线路列表:', reply_markup=reply_markup)
+            update.message.reply_text(reply_text, reply_markup=reply_markup)
 
 
 def detail_callback(bot, update):
