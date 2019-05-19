@@ -140,6 +140,11 @@ def record_user(bot, update):
         pickle.dump(users, f)
 
 
+def version(bot, update):
+    with open('lines/version.txt') as f:
+        update.message.reply_text(f.readline())
+
+
 def main():
     if os.path.isfile('users.pickle'):
         global users
@@ -156,6 +161,7 @@ def main():
     updater.dispatcher.add_handler(CommandHandler('lines', lines))
     updater.dispatcher.add_handler(CommandHandler('detail', detail, pass_args=True))
     updater.dispatcher.add_handler(CommandHandler('help', show_help))
+    update.dispatcher.add_handler(CommandHandler('version', version))
     updater.start_polling()
     updater.idle()
 
