@@ -124,6 +124,7 @@ def show_help(bot, update):
         '/lines             查看当前所有线路',
         '/detail <line_id>  查看线路详情',
         '/help              显示此帮助',
+        '/version           查看线路配置版本(日期)',
         '注意: 智园线等班次较少的线路尚未加入, 但其他线路时刻表已经为最新.'
         ''
     ]
@@ -141,8 +142,7 @@ def record_user(bot, update):
 
 
 def version(bot, update):
-    with open('lines/version.txt') as f:
-        update.message.reply_text(f.readline())
+    update.message.reply_text(sched.version)
 
 
 def main():
@@ -161,7 +161,7 @@ def main():
     updater.dispatcher.add_handler(CommandHandler('lines', lines))
     updater.dispatcher.add_handler(CommandHandler('detail', detail, pass_args=True))
     updater.dispatcher.add_handler(CommandHandler('help', show_help))
-    update.dispatcher.add_handler(CommandHandler('version', version))
+    updater.dispatcher.add_handler(CommandHandler('version', version))
     updater.start_polling()
     updater.idle()
 

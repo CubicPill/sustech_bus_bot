@@ -154,11 +154,14 @@ class BusSchedule:
         self._lines = dict()
         self._groups = dict()
         self._date_overrides = dict()
+        self._version = 0
         self._read_line_info()
 
     def _read_line_info(self):
         with open('./date_override.txt', encoding='utf8') as f:
             self._date_overrides = self.parse_overrides(f.readlines())
+        with open('./version.txt', encoding='utf8') as f:
+            self._version = f.readline()
         for filename in os.listdir('./lines'):
             with open(os.path.join('./lines', filename), encoding='utf8') as f:
                 l = self.parse_line(f.readlines())
@@ -170,6 +173,10 @@ class BusSchedule:
                     line = line.replace('\n', '')
                     group, description = line.split(':')
                     self._groups[group] = description
+
+    @property
+    def version(self):
+        return self._version
 
     @staticmethod
     def parse_overrides(lines: list) -> dict:
